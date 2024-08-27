@@ -102,6 +102,7 @@ impl<E: EthSpec> LightClientBootstrap<E> {
                     "LightClientBootstrap decoding for {fork_name} not implemented"
                 )))
             }
+            ForkName::EIP7732 => todo!("EIP-7732 light client not implemented"),
         };
 
         Ok(bootstrap)
@@ -117,6 +118,7 @@ impl<E: EthSpec> LightClientBootstrap<E> {
             ForkName::Capella => <LightClientBootstrapCapella<E> as Encode>::ssz_fixed_len(),
             ForkName::Deneb => <LightClientBootstrapDeneb<E> as Encode>::ssz_fixed_len(),
             ForkName::Electra => <LightClientBootstrapElectra<E> as Encode>::ssz_fixed_len(),
+            ForkName::EIP7732 => todo!("EIP-7732 light client not implemented"),
         };
         fixed_len + LightClientHeader::<E>::ssz_max_var_len_for_fork(fork_name)
     }
@@ -152,6 +154,7 @@ impl<E: EthSpec> LightClientBootstrap<E> {
                 current_sync_committee,
                 current_sync_committee_branch: current_sync_committee_branch.into(),
             }),
+            ForkName::EIP7732 => todo!("EIP-7732 light client not implemented"),
         };
 
         Ok(light_client_bootstrap)
@@ -192,6 +195,7 @@ impl<E: EthSpec> LightClientBootstrap<E> {
                 current_sync_committee,
                 current_sync_committee_branch: current_sync_committee_branch.into(),
             }),
+            ForkName::EIP7732 => todo!("EIP-7732 light client not implemented"),
         };
 
         Ok(light_client_bootstrap)
