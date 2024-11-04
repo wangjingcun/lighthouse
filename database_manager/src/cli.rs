@@ -3,6 +3,7 @@ use clap_utils::get_color_style;
 use clap_utils::FLAG_HEADER;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use types::Slot;
 
 use crate::InspectTarget;
 
@@ -79,6 +80,7 @@ pub enum DatabaseManagerSubcommand {
     PruneBlobs(PruneBlobs),
     PruneStates(PruneStates),
     Compact(Compact),
+    SetOldestBlobSlot(SetOldestBlobSlot),
 }
 
 #[derive(Parser, Clone, Deserialize, Serialize, Debug)]
@@ -226,4 +228,16 @@ pub struct Compact {
         display_order = 0
     )]
     pub output_dir: Option<PathBuf>,
+}
+
+#[derive(Parser, Clone, Deserialize, Serialize, Debug)]
+#[clap(about = "Manually override the database's view of the oldest blob known.")]
+pub struct SetOldestBlobSlot {
+    #[clap(
+        long,
+        value_name = "SLOT",
+        help = "Slot of the oldest blob in the database.",
+        display_order = 0
+    )]
+    pub slot: Slot,
 }

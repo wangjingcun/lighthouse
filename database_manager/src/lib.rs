@@ -473,6 +473,41 @@ pub fn prune_states<E: EthSpec>(
     Ok(())
 }
 
+fn set_oldest_blob_slot<E: EthSpec>(
+    slot: Slot,
+    client_config: ClientConfig,
+    runtime_context: &RuntimeContext<E>,
+    log: Logger,
+) -> Result<(), Error> {
+    let spec = &runtime_context.eth2_config.spec;
+    let hot_path = client_config.get_db_path();
+    let cold_path = client_config.get_freezer_db_path();
+    let blobs_path = client_config.get_blobs_db_path();
+
+    let db = HotColdDB::<E, LevelDB<E>, LevelDB<E>>::open(
+        &hot_path,
+        &cold_path,
+        &blobs_path,
+        |_, _, _| Ok(()),
+        client_config.store,
+        spec.clone(),
+        log.clone(),
+    )?;
+
+    let old_blob_info = db.get_blob_info();
+    let mut new_blob_info = old_blob_info.clone();
+    new_blob_info.oldest_blob_slot = Some(slot);
+
+    info!(
+        log,
+        "Updating oldest blob slot";
+        "previous" => ?old_blob_info.oldest_blob_slot,
+        "new" => slot,
+    );
+
+    db.compare_and_set_blob_info_with_write(old_blob_info, new_blob_info)
+}
+
 /// Run the database manager, returning an error string if the operation did not succeed.
 pub fn run<E: EthSpec>(
     cli_args: &ArgMatches,
@@ -529,6 +564,10 @@ pub fn run<E: EthSpec>(
         cli::DatabaseManagerSubcommand::Compact(compact_config) => {
             let compact_config = parse_compact_config(compact_config)?;
             compact_db::<E>(compact_config, client_config, log).map_err(format_err)
+        }
+        cli::DatabaseManagerSubcommand::SetOldestBlobSlot(blob_slot_config) => {
+            set_oldest_blob_slot(blob_slot_config.slot, client_config, &context, log)
+                .map_err(format_err)
         }
     }
 }
