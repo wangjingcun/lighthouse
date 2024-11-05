@@ -81,6 +81,7 @@ pub enum DatabaseManagerSubcommand {
     PruneStates(PruneStates),
     Compact(Compact),
     SetOldestBlobSlot(SetOldestBlobSlot),
+    InspectBlobs(InspectBlobs),
 }
 
 #[derive(Parser, Clone, Deserialize, Serialize, Debug)]
@@ -240,4 +241,11 @@ pub struct SetOldestBlobSlot {
         display_order = 0
     )]
     pub slot: Slot,
+}
+
+#[derive(Parser, Clone, Deserialize, Serialize, Debug)]
+#[clap(about = "Produce a summary of blob availability in the databasue.")]
+pub struct InspectBlobs {
+    #[clap(long, help = "Verify blob data integrity.", display_order = 0)]
+    pub verify: bool,
 }

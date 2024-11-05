@@ -23,7 +23,7 @@ use store::{
     DBColumn, HotColdDB, KeyValueStore, LevelDB,
 };
 use strum::{EnumString, EnumVariantNames};
-use types::{BeaconState, EthSpec, Slot};
+use types::{BeaconState, EthSpec, Hash256, Slot};
 
 fn parse_client_config<E: EthSpec>(
     cli_args: &ArgMatches,
@@ -508,6 +508,81 @@ fn set_oldest_blob_slot<E: EthSpec>(
     db.compare_and_set_blob_info_with_write(old_blob_info, new_blob_info)
 }
 
+fn inspect_blobs<E: EthSpec>(
+    verify: bool,
+    client_config: ClientConfig,
+    runtime_context: &RuntimeContext<E>,
+    log: Logger,
+) -> Result<(), Error> {
+    let spec = &runtime_context.eth2_config.spec;
+    let hot_path = client_config.get_db_path();
+    let cold_path = client_config.get_freezer_db_path();
+    let blobs_path = client_config.get_blobs_db_path();
+
+    let db = HotColdDB::<E, LevelDB<E>, LevelDB<E>>::open(
+        &hot_path,
+        &cold_path,
+        &blobs_path,
+        |_, _, _| Ok(()),
+        client_config.store,
+        spec.clone(),
+        log.clone(),
+    )?;
+
+    let split = db.get_split_info();
+    let oldest_block_slot = db.get_oldest_block_slot();
+    let deneb_start_slot = spec
+        .deneb_fork_epoch
+        .map_or(Slot::new(0), |epoch| epoch.start_slot(E::slots_per_epoch()));
+    let start_slot = oldest_block_slot.max(deneb_start_slot);
+
+    if oldest_block_slot > deneb_start_slot {
+        info!(
+            log,
+            "Missing blobs AND blocks";
+            "start" => deneb_start_slot,
+            "end" => oldest_block_slot - 1,
+        );
+    }
+
+    let mut last_block_root = Hash256::ZERO;
+
+    for res in db.forwards_block_roots_iterator_until(
+        start_slot,
+        split.slot,
+        || panic!("not required"),
+        spec,
+    )? {
+        let (block_root, slot) = res?;
+
+        if last_block_root == block_root {
+            info!(log, "Slot {}: no block", slot);
+        } else if let Some(blobs) = db.get_blobs(&block_root)? {
+            // FIXME(sproul): do verification here
+            info!(log, "Slot {}: {} blobs stored", slot, blobs.len());
+        } else {
+            // Check whether blobs are expected.
+            let block = db
+                .get_blinded_block(&block_root)?
+                .ok_or(Error::BlockNotFound(block_root))?;
+
+            let num_expected_blobs = block
+                .message()
+                .body()
+                .blob_kzg_commitments()
+                .map_or(0, |blobs| blobs.len());
+            if num_expected_blobs > 0 {
+                info!(log, "Slot {}: {} blobs missing", slot, num_expected_blobs);
+            } else {
+                info!(log, "Slot {}: block with no blobs", slot);
+            }
+        }
+        last_block_root = block_root;
+    }
+
+    Ok(())
+}
+
 /// Run the database manager, returning an error string if the operation did not succeed.
 pub fn run<E: EthSpec>(
     cli_args: &ArgMatches,
@@ -568,6 +643,9 @@ pub fn run<E: EthSpec>(
         cli::DatabaseManagerSubcommand::SetOldestBlobSlot(blob_slot_config) => {
             set_oldest_blob_slot(blob_slot_config.slot, client_config, &context, log)
                 .map_err(format_err)
+        }
+        cli::DatabaseManagerSubcommand::InspectBlobs(_) => {
+            inspect_blobs(false, client_config, &context, log).map_err(format_err)
         }
     }
 }
