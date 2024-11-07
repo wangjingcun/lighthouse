@@ -20,6 +20,7 @@ use std::path::{Path, PathBuf};
 use store::metadata::STATE_UPPER_LIMIT_NO_RETAIN;
 use store::{
     errors::Error,
+    hot_cold_store::HotColdDBError,
     metadata::{SchemaVersion, CURRENT_SCHEMA_VERSION},
     DBColumn, HotColdDB, KeyValueStore, LevelDB, StoreItem,
 };
@@ -510,7 +511,7 @@ fn set_oldest_blob_slot<E: EthSpec>(
 }
 
 fn inspect_blobs<E: EthSpec>(
-    verify: bool,
+    _verify: bool,
     client_config: ClientConfig,
     runtime_context: &RuntimeContext<E>,
     log: Logger,
@@ -551,7 +552,11 @@ fn inspect_blobs<E: EthSpec>(
     for res in db.forwards_block_roots_iterator_until(
         start_slot,
         split.slot,
-        || panic!("not required"),
+        || {
+            db.get_advanced_hot_state(split.block_root, split.slot, split.state_root)?
+                .ok_or(HotColdDBError::MissingSplitState(split.state_root, split.slot).into())
+                .map(|(_, split_state)| (split_state, split.block_root))
+        },
         spec,
     )? {
         let (block_root, slot) = res?;
