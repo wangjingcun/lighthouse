@@ -1908,6 +1908,7 @@ dependencies = [
  "clap",
  "clap_utils",
  "environment",
+ "ethereum_ssz",
  "hex",
  "serde",
  "slog",
