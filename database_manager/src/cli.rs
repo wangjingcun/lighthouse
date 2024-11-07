@@ -82,6 +82,7 @@ pub enum DatabaseManagerSubcommand {
     Compact(Compact),
     SetOldestBlobSlot(SetOldestBlobSlot),
     InspectBlobs(InspectBlobs),
+    ImportBlobs(ImportBlobs),
 }
 
 #[derive(Parser, Clone, Deserialize, Serialize, Debug)]
@@ -244,8 +245,15 @@ pub struct SetOldestBlobSlot {
 }
 
 #[derive(Parser, Clone, Deserialize, Serialize, Debug)]
-#[clap(about = "Produce a summary of blob availability in the databasue.")]
+#[clap(about = "Produce a summary of blob availability in the database.")]
 pub struct InspectBlobs {
     #[clap(long, help = "Verify blob data integrity.", display_order = 0)]
     pub verify: bool,
+}
+
+#[derive(Parser, Clone, Deserialize, Serialize, Debug)]
+#[clap(about = "Import blobs from another node's blob database.")]
+pub struct ImportBlobs {
+    #[clap(long, help = "Path to the database to import", display_order = 0)]
+    pub source_db: PathBuf,
 }
