@@ -578,9 +578,12 @@ fn inspect_blobs<E: EthSpec>(
                 .blob_kzg_commitments()
                 .map_or(0, |blobs| blobs.len());
             if num_expected_blobs > 0 {
-                info!(log, "Slot {}: {} blobs missing", slot, num_expected_blobs);
+                warn!(
+                    log,
+                    "Slot {}: {} blobs missing ({:?})", slot, num_expected_blobs, block_root
+                );
             } else {
-                info!(log, "Slot {}: block with no blobs", slot);
+                info!(log, "Slot {}: block with 0 blobs", slot);
             }
         }
         last_block_root = block_root;
@@ -631,13 +634,18 @@ fn import_blobs<E: EthSpec>(
         } else {
             let blobs = BlobSidecarList::<E>::from_ssz_bytes(&blob_bytes)?;
             ops.push(KeyValueStoreOp::PutKeyValue(
-                block_root.to_vec(),
+                store::get_key_for_col(DBColumn::BeaconBlob.as_str(), block_root.as_slice()),
                 blob_bytes,
             ));
 
             if let Some(blob) = blobs.first() {
                 oldest_blob_slot = oldest_blob_slot.min(blob.slot());
-                debug!(log, "Imported blobs for slot {}", blob.slot());
+                debug!(
+                    log,
+                    "Imported blobs for slot {} ({:?})",
+                    blob.slot(),
+                    block_root
+                );
             }
             num_imported += 1;
 
