@@ -22,7 +22,7 @@ use store::{
     errors::Error,
     hot_cold_store::HotColdDBError,
     metadata::{SchemaVersion, CURRENT_SCHEMA_VERSION},
-    DBColumn, HotColdDB, KeyValueStore, LevelDB, StoreItem,
+    DBColumn, HotColdDB, KeyValueStore, KeyValueStoreOp, LevelDB,
 };
 use strum::{EnumString, EnumVariantNames};
 use types::{BeaconState, BlobSidecarList, EthSpec, Hash256, Slot};
@@ -630,7 +630,10 @@ fn import_blobs<E: EthSpec>(
             num_already_known += 1;
         } else {
             let blobs = BlobSidecarList::<E>::from_ssz_bytes(&blob_bytes)?;
-            ops.push(blobs.as_kv_store_op(block_root));
+            ops.push(KeyValueStoreOp::PutKeyValue(
+                block_root.to_vec(),
+                blob_bytes,
+            ));
 
             if let Some(blob) = blobs.first() {
                 oldest_blob_slot = oldest_blob_slot.min(blob.slot());
