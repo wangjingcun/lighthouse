@@ -97,6 +97,10 @@ pub mod eip7732 {
         state: &mut BeaconState<E>,
         spec: &ChainSpec,
     ) -> Result<(), BlockProcessingError> {
+        if !state.is_parent_block_full() {
+            return Ok(());
+        }
+
         let (expected_withdrawals, partial_withdrawals_count) =
             get_expected_withdrawals(state, spec)?;
         process_withdrawals_common(state, expected_withdrawals, partial_withdrawals_count, spec)

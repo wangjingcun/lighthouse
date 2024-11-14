@@ -699,7 +699,7 @@ pub fn process_execution_bid<E: EthSpec, Payload: AbstractExecPayload<E>>(
     decrease_balance(state, builder_index as usize, bid.value)?;
     increase_balance(state, block.proposer_index() as usize, bid.value)?;
 
-    *state.latest_execution_bid_eip7732_mut()? = bid.clone();
+    *state.latest_execution_bid_mut()? = bid.clone();
 
     Ok(())
 }

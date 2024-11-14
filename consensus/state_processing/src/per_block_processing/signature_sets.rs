@@ -12,8 +12,8 @@ use types::{
     InconsistentFork, IndexedAttestation, IndexedAttestationRef, IndexedPayloadAttestation,
     ProposerSlashing, PublicKey, PublicKeyBytes, Signature, SignedAggregateAndProof,
     SignedBeaconBlock, SignedBeaconBlockHeader, SignedBlsToExecutionChange,
-    SignedContributionAndProof, SignedExecutionBid, SignedRoot, SignedVoluntaryExit, SigningData,
-    Slot, SyncAggregate, SyncAggregatorSelectionData, Unsigned,
+    SignedContributionAndProof, SignedExecutionBid, SignedExecutionEnvelope, SignedRoot,
+    SignedVoluntaryExit, SigningData, Slot, SyncAggregate, SyncAggregatorSelectionData, Unsigned,
 };
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -384,6 +384,34 @@ where
 
     Ok(SignatureSet::single_pubkey(
         &signed_execution_bid.signature,
+        pubkey,
+        message,
+    ))
+}
+
+pub fn execution_envelope_signature_set<'a, E, F>(
+    state: &'a BeaconState<E>,
+    get_pubkey: F,
+    signed_envelope: &'a SignedExecutionEnvelope<E>,
+    spec: &'a ChainSpec,
+) -> Result<SignatureSet<'a>>
+where
+    E: EthSpec,
+    F: Fn(usize) -> Option<Cow<'a, PublicKey>>,
+{
+    let domain = spec.get_domain(
+        state.current_epoch(),
+        Domain::BeaconBuilder,
+        &state.fork(),
+        state.genesis_validators_root(),
+    );
+    let message = signed_envelope.message().signing_root(domain);
+    let pubkey = get_pubkey(signed_envelope.message().builder_index as usize).ok_or(
+        Error::ValidatorUnknown(signed_envelope.message().builder_index),
+    )?;
+
+    Ok(SignatureSet::single_pubkey(
+        signed_envelope.signature(),
         pubkey,
         message,
     ))

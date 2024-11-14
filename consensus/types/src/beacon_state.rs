@@ -483,7 +483,7 @@ where
     )]
     #[metastruct(exclude_from(tree_lists))]
     pub latest_execution_payload_header: ExecutionPayloadHeaderElectra<E>,
-    #[superstruct(only(EIP7732), partial_getter(rename = "latest_execution_bid_eip7732"))]
+    #[superstruct(only(EIP7732))]
     #[metastruct(exclude_from(tree_lists))]
     pub latest_execution_bid: ExecutionBid,
 
@@ -1980,6 +1980,19 @@ impl<E: EthSpec> BeaconState<E> {
             RelativeEpoch::Previous => 0,
             RelativeEpoch::Current => 1,
             RelativeEpoch::Next => 2,
+        }
+    }
+
+    pub fn is_parent_block_full(&self) -> bool {
+        match self {
+            BeaconState::Base(_) | BeaconState::Altair(_) => false,
+            BeaconState::Bellatrix(_)
+            | BeaconState::Capella(_)
+            | BeaconState::Deneb(_)
+            | BeaconState::Electra(_) => true,
+            BeaconState::EIP7732(state) => {
+                state.latest_execution_bid.block_hash == state.latest_block_hash
+            }
         }
     }
 

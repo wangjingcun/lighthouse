@@ -63,6 +63,7 @@ pub enum BlockProcessingError {
     ExecutionBidInvalid {
         reason: ExecutionBidInvalid,
     },
+    ExecutionEnvelopeError(ExecutionEnvelopeError),
     BeaconStateError(BeaconStateError),
     SignatureSetError(SignatureSetError),
     SszTypesError(ssz_types::Error),
@@ -156,6 +157,12 @@ impl From<milhouse::Error> for BlockProcessingError {
 impl From<ExecutionBidInvalid> for BlockProcessingError {
     fn from(reason: ExecutionBidInvalid) -> Self {
         BlockProcessingError::ExecutionBidInvalid { reason }
+    }
+}
+
+impl From<ExecutionEnvelopeError> for BlockProcessingError {
+    fn from(e: ExecutionEnvelopeError) -> Self {
+        BlockProcessingError::ExecutionEnvelopeError(e)
     }
 }
 
@@ -539,5 +546,61 @@ pub enum ExecutionBidInvalid {
     ParentBlockRootMismatch {
         block_parent_root: Hash256,
         bid_parent_root: Hash256,
+    },
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ExecutionEnvelopeError {
+    /// The signature is invalid.
+    BadSignature,
+    /// Envelope doesn't match latest beacon block header
+    LatestBlockHeaderMismatch {
+        envelope_root: Hash256,
+        block_header_root: Hash256,
+    },
+    /// The builder index doesn't match the committed bid
+    BuilderIndexMismatch {
+        committed_bid: u64,
+        envelope: u64,
+    },
+    /// The blob KZG commitments root doesn't match the committed bid
+    BlobKzgCommitmentsRootMismatch {
+        committed_bid: Hash256,
+        envelope: Hash256,
+    },
+    /// The withdrawals root doesn't match the state's latest withdrawals root
+    WithdrawalsRootMismatch {
+        state: Hash256,
+        envelope: Hash256,
+    },
+    // The gas limit doesn't match the committed bid
+    GasLimitMismatch {
+        committed_bid: u64,
+        envelope: u64,
+    },
+    // The block hash doesn't match the committed bid
+    BlockHashMismatch {
+        committed_bid: ExecutionBlockHash,
+        envelope: ExecutionBlockHash,
+    },
+    // The parent hash doesn't match the previous execution payload
+    ParentHashMismatch {
+        state: ExecutionBlockHash,
+        envelope: ExecutionBlockHash,
+    },
+    // The previous randao didn't match the payload
+    PrevRandaoMismatch {
+        state: Hash256,
+        envelope: Hash256,
+    },
+    // The timestamp didn't match the payload
+    TimestampMismatch {
+        state: u64,
+        envelope: u64,
+    },
+    // Blob committments exceeded the maximum
+    BlobLimitExceeded {
+        max: usize,
+        envelope: usize,
     },
 }

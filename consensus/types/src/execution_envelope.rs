@@ -48,3 +48,5 @@ pub struct ExecutionEnvelope<E: EthSpec> {
     pub payment_withheld: bool,
     pub state_root: Hash256,
 }
+
+impl<E: EthSpec> SignedRoot for ExecutionEnvelopeEIP7732<E> {}

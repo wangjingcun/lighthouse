@@ -33,7 +33,7 @@ pub mod verify_operation;
 pub use all_caches::AllCaches;
 pub use block_replayer::{BlockReplayError, BlockReplayer};
 pub use consensus_context::{ConsensusContext, ContextError};
-pub use execution_processing::process_execution_payload_envelope;
+pub use execution_processing::process_execution_envelope;
 pub use genesis::{
     eth2_genesis_time, initialize_beacon_state_from_eth1, is_valid_genesis_state,
     process_activations,
