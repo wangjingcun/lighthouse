@@ -656,12 +656,6 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                         // This is an internal error, do not penalize the peer.
                         None
                     }
-                    HistoricalBlockError::NoAnchorInfo => {
-                        warn!(self.log, "Backfill not required");
-                        // There is no need to do a historical sync, this is not a fault of
-                        // the peer.
-                        None
-                    }
                     HistoricalBlockError::IndexOutOfBounds => {
                         error!(
                             self.log,
