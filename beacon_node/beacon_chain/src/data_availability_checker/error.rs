@@ -1,15 +1,15 @@
 use kzg::{Error as KzgError, KzgCommitment};
-use types::{BeaconStateError, Hash256};
+use types::{BeaconStateError, ColumnIndex, Hash256};
 
 #[derive(Debug)]
 pub enum Error {
-    Kzg(KzgError),
-    KzgVerificationFailed,
+    InvalidBlobs(KzgError),
+    InvalidColumn(ColumnIndex, KzgError),
+    ReconstructColumnsError(KzgError),
     KzgCommitmentMismatch {
         blob_commitment: KzgCommitment,
         block_commitment: KzgCommitment,
     },
-    UnableToDetermineImportRequirement,
     Unexpected,
     SszTypes(ssz_types::Error),
     MissingBlobs,
@@ -43,14 +43,14 @@ impl Error {
             | Error::Unexpected
             | Error::ParentStateMissing(_)
             | Error::BlockReplayError(_)
-            | Error::UnableToDetermineImportRequirement
             | Error::RebuildingStateCaches(_)
             | Error::SlotClockError => ErrorCategory::Internal,
-            Error::Kzg(_)
+            Error::InvalidBlobs { .. }
+            | Error::InvalidColumn { .. }
+            | Error::ReconstructColumnsError { .. }
             | Error::BlobIndexInvalid(_)
             | Error::DataColumnIndexInvalid(_)
-            | Error::KzgCommitmentMismatch { .. }
-            | Error::KzgVerificationFailed => ErrorCategory::Malicious,
+            | Error::KzgCommitmentMismatch { .. } => ErrorCategory::Malicious,
         }
     }
 }
@@ -76,11 +76,5 @@ impl From<ssz::DecodeError> for Error {
 impl From<state_processing::BlockReplayError> for Error {
     fn from(value: state_processing::BlockReplayError) -> Self {
         Self::BlockReplayError(value)
-    }
-}
-
-impl From<KzgError> for Error {
-    fn from(value: KzgError) -> Self {
-        Self::Kzg(value)
     }
 }

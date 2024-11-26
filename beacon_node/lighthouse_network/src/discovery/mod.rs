@@ -1052,10 +1052,6 @@ impl<E: EthSpec> NetworkBehaviour for Discovery<E> {
                         discv5::Event::SocketUpdated(socket_addr) => {
                             info!(self.log, "Address updated"; "ip" => %socket_addr.ip(), "udp_port" => %socket_addr.port());
                             metrics::inc_counter(&metrics::ADDRESS_UPDATE_COUNT);
-                            // We have SOCKET_UPDATED messages. This occurs when discovery has a majority of
-                            // users reporting an external port and our ENR gets updated.
-                            // Which means we are able to do NAT traversal.
-                            metrics::set_gauge_vec(&metrics::NAT_OPEN, &["discv5"], 1);
                             // Discv5 will have updated our local ENR. We save the updated version
                             // to disk.
 
@@ -1215,10 +1211,11 @@ mod tests {
     }
 
     async fn build_discovery() -> Discovery<E> {
-        let spec = ChainSpec::default();
+        let spec = Arc::new(ChainSpec::default());
         let keypair = secp256k1::Keypair::generate();
         let mut config = NetworkConfig::default();
         config.set_listening_addr(crate::ListenAddress::unused_v4_ports());
+        let config = Arc::new(config);
         let enr_key: CombinedKey = CombinedKey::from_secp256k1(&keypair);
         let enr: Enr = build_enr::<E>(&enr_key, &config, &EnrForkId::default(), &spec).unwrap();
         let log = build_log(slog::Level::Debug, false);
@@ -1232,6 +1229,7 @@ mod tests {
             vec![],
             false,
             &log,
+            config.clone(),
             spec.clone(),
         );
         let keypair = keypair.into();
