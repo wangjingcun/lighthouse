@@ -296,7 +296,7 @@ pub async fn validate_merge_block<'a, T: BeaconChainTypes>(
 }
 
 /// Validate the gossip block's execution_payload according to the checks described here:
-/// https://github.com/ethereum/consensus-specs/blob/dev/specs/merge/p2p-interface.md#beacon_block
+/// https://github.com/ethereum/consensus-specs/blob/dev/specs/deneb/p2p-interface.md#beacon_block
 pub fn validate_execution_payload_for_gossip<T: BeaconChainTypes>(
     parent_block: &ProtoBlock,
     block: BeaconBlockRef<'_, T::EthSpec>,
